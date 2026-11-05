@@ -92,6 +92,12 @@ for (const t of txs) { const inp = (t?.input || '').slice(2);
   const bps = Array.from({ length: Number(W(h, oB)) }, (_, i) => Number(W(h, oB + 1 + i)));
   cards.push({ fund, seats, bps, epoch: epochOfTx.get(t.hash), block: parseInt(t.blockNumber, 16), idx: parseInt(t.transactionIndex, 16) }); }
 cards.sort((a, b) => a.block - b.block || a.idx - b.idx);
+{ // TEST ONLY: does any Seat return more than one card for the same fund and week? (prints counts only)
+  const seen = new Map(); let dup = 0, changed = 0; const byEp = {};
+  for (const c of cards) for (const st of c.seats) { const k = c.fund + ':' + c.epoch + ':' + st; byEp[c.epoch] = (byEp[c.epoch] || 0) + 1;
+    if (seen.has(k)) { dup++; if (seen.get(k) !== JSON.stringify(c.bps)) changed++; } seen.set(k, JSON.stringify(c.bps)); }
+  console.log('REVOTE cards_tx', cards.length, 'seat_cards_by_week', JSON.stringify(byEp), 'repeat_seat_cards', dup, 'repeat_with_different_split', changed, 'scan_from_block', scanFrom);
+}
 const wCache = new Map(); const weightOf = async seat => { if (!wCache.has(seat)) wCache.set(seat, await num(OFFICE, SEL.votingWeight, BigInt(seat))); return wCache.get(seat); };
 // The room for one week: a Seat's latest card that week wins.
 async function roomsFor(ep) {
