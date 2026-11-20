@@ -50,3 +50,5 @@ jobs:
         run: |
           gh api -X POST "repos/$GITHUB_REPOSITORY/actions/workflows/turnout.yml/dispatches" -f ref=main
           gh api -X POST "repos/$GITHUB_REPOSITORY/actions/workflows/tick.yml/dispatches" -f ref=main
+          # weekly health & security check: Fridays 22:00-23:59 UTC (it skips itself if already run); never breaks the clock
+          if [ "$(date -u +%u)" = "5" ] && [ "$(date -u +%H)" -ge 22 ]; then gh api -X POST "repos/$GITHUB_REPOSITORY/actions/workflows/health-security.yml/dispatches" -f ref=main -f 'inputs[from_clock]=true' || true; fi
