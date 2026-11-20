@@ -12,8 +12,8 @@ const fails = [], warns = [], oks = [];
 const fail = (m) => fails.push(m), warn = (m) => warns.push(m), ok = (m) => oks.push(m);
 
 const readJSON = (p) => { try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return null; } };
-const gh = (path) => {
-  try { return JSON.parse(execFileSync('gh', ['api', path], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })); }
+const gh = (path, jq) => {
+  try { return JSON.parse(execFileSync('gh', ['api', path, ...(jq ? ['--jq', jq] : [])], { encoding: 'utf8', maxBuffer: 64 << 20, stdio: ['ignore', 'pipe', 'pipe'] })); }
   catch (e) { return { __error: String(e.stderr || e.message).split('\n')[0] }; }
 };
 
@@ -38,7 +38,8 @@ else {
 // ---------- 2. GitHub Actions runs (last 7 days) ----------
 if (REPO) {
   const since = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
-  const runs = gh(`repos/${REPO}/actions/runs?per_page=100&created=>=${since}`);
+  const runs = gh(`repos/${REPO}/actions/runs?per_page=100&created=>=${since}`,
+    '{workflow_runs: [.workflow_runs[] | {name, status, conclusion, html_url}]}');
   if (runs.__error) warn(`Couldn't read workflow runs: ${runs.__error}`);
   else {
     const byWf = {};
@@ -108,7 +109,8 @@ for (const [re, label, report] of keyLike) {
   const n = (keyScanText.match(re) || []).length;
   if (n) report(`Privacy: ${n} × ${label} found on the public page/data — check it isn't a secret`);
 }
-if (/\bseat\s*(?:no\.?|number|#)\s*\d+/i.test(publicText)) fail('Privacy: a seat number appears on the public page');
+const seatHits = [...new Set((publicText.match(/[A-Za-z]*\s*\bseat\s*(?:no\.?|number|#)\s*\d+/gi) || []).map((s) => s.trim()))];
+if (seatHits.length) fail(`Privacy: seat number(s) on the public page: ${seatHits.map((s) => '`' + s + '`').join(', ')}`);
 if (!fails.some((f) => f.startsWith('Privacy'))) ok('Privacy: no keys, tokens or seat numbers on the public page');
 
 // ---------- 5. Security ----------
