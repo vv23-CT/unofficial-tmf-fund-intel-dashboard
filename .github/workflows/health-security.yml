@@ -1,0 +1,105 @@
+name: Weekly health & security check
+
+# Started weekly by the chain reader clock (tick.yml) on Fridays 22:00-23:59 UTC,
+# ~2-4h after the 20:00 UTC bell, because GitHub's cron never fires for this repo.
+# Run it any time by hand from the Actions tab (Run workflow).
+on:
+  schedule:
+    - cron: "37 22 * * 5"   # backup, only if GitHub's scheduler ever works here
+  workflow_dispatch:
+    inputs:
+      from_clock:
+        description: "Started by the clock (skips if it already ran in the last 3 days)"
+        type: boolean
+        default: false
+
+# Read-only except for the one issue it opens/closes
+permissions:
+  contents: read
+  actions: read
+  issues: write
+  pages: read
+  security-events: read
+
+concurrency:
+  group: health-security
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.g.outputs.go }}
+    steps:
+      - id: g
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # the clock may start this twice in its Friday window; run once per week
+          if [ "${{ inputs.from_clock }}" != "true" ] && [ "${{ github.event_name }}" != "schedule" ]; then echo "go=1" >> $GITHUB_OUTPUT; exit 0; fi
+          SINCE=$(date -u -d '3 days ago' +%Y-%m-%dT%H:%M:%SZ)
+          N=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/health-security.yml/runs?per_page=20" \
+            --jq "[.workflow_runs[] | select(.id != ${{ github.run_id }}) | select(.created_at > \"$SINCE\") | select(.conclusion != \"cancelled\")] | length")
+          if [ "$N" = "0" ]; then echo "go=1" >> $GITHUB_OUTPUT; else echo "Already ran this week; skipping."; echo "go=0" >> $GITHUB_OUTPUT; fi
+
+  check:
+    needs: gate
+    if: needs.gate.outputs.go == '1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # full history for the secret scan
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Playwright (temp, not saved to repo)
+        run: |
+          mkdir -p /tmp/pw && cd /tmp/pw
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1
+          npx playwright install --with-deps chromium
+
+      - name: Secret scan (gitleaks, full history, redacted)
+        run: |
+          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.21.2 \
+            git /repo --redact --no-banner --exit-code 0 \
+            --report-format json --report-path /repo/.gitleaks.json || echo '[]' > .gitleaks.json
+
+      - name: Run checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NODE_PATH: /tmp/pw/node_modules
+        run: |
+          PAGE_URL=$(gh api "repos/$REPO/pages" --jq .html_url 2>/dev/null || true)
+          export PAGE_URL
+          node tools/health_check.mjs
+
+      - name: Open, update or close the health issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          [ -f health-report.md ] || { echo "No report produced" > health-report.md; echo fail > health-status.txt; }
+          STATUS=$(cat health-status.txt 2>/dev/null || echo fail)
+          gh label create health-check --repo "$REPO" --color B60205 \
+            --description "Weekly health & security check" 2>/dev/null || true
+          OPEN=$(gh issue list --repo "$REPO" --label health-check --state open --json number --jq '.[0].number')
+          if [ "$STATUS" = "pass" ]; then
+            if [ -n "$OPEN" ]; then
+              gh issue comment "$OPEN" --repo "$REPO" --body-file health-report.md
+              gh issue close "$OPEN" --repo "$REPO" --reason completed
+            fi
+          elif [ -n "$OPEN" ]; then
+            gh issue comment "$OPEN" --repo "$REPO" --body-file health-report.md
+          else
+            gh issue create --repo "$REPO" --label health-check \
+              --title "Health & security check needs attention ($(date -u +%Y-%m-%d))" \
+              --body-file health-report.md
+          fi
+          cat health-report.md >> "$GITHUB_STEP_SUMMARY"
