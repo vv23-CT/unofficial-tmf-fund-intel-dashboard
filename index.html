@@ -238,9 +238,6 @@ table.g tr.sum td{font-size:11.5px;color:var(--muted)}
 .tile{border:1px solid var(--line);border-radius:9px;padding:7px 9px}
 .tile .l{font-size:11.5px;color:var(--muted)}.tile .v{font:400 19px/1.2 var(--serif);font-variant-numeric:tabular-nums}.tile .s{font-size:11px;color:var(--muted)}
 .down{color:var(--bad)}.up{color:var(--good-t)}
-.evl{display:flex;flex-direction:column}
-.ev{display:grid;grid-template-columns:5.4rem 1fr;gap:6px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}.ev:last-child{border-bottom:0}
-.ev b{font-size:12.5px}.ev.key .what{font-weight:700}.ev small{display:block;color:var(--muted);font-size:11.5px}
 dl.dl{margin:0;display:flex;flex-direction:column;gap:7px}dl.dl dt{font-weight:700}dl.dl dd{margin:0;color:var(--fg)}
 .changed{font-size:13px;line-height:1.45}
 .changed .chp{margin:0 0 6px}
@@ -334,7 +331,6 @@ html,body{height:100%;overflow:hidden}
 .stat em{font-size:12px;vertical-align:1px}
 
 .hd .sub .nxt #nxt::before{content:'↻ ';}
-#evs small.res{display:block;color:var(--fg);font-weight:600}
 /* turnout, read from the chain */
 .oc{color:var(--muted);font-size:11px}
 #wkList small.oc{display:block}
@@ -444,8 +440,7 @@ table.g tr.sum td.tu{font-weight:700;color:var(--fg)}
 .acc .in{padding:2px 12px 12px}
 .acc details:nth-child(1)>summary::before{content:"Δ";background:#9C5248}
 .acc details:nth-child(2)>summary::before{content:"$";background:#49698C}
-.acc details:nth-child(3)>summary::before{content:"▦";background:#c4902a}
-.acc details:nth-child(4)>summary::before{content:"?";background:#6b5b8c}
+.acc details:nth-child(3)>summary::before{content:"?";background:#6b5b8c}
 :root[data-term] .acc summary::before{background:transparent!important;border:1px solid var(--acc);color:var(--acc)}
 :root[data-term] .acc details{border-color:var(--line)}
 </style>
@@ -517,7 +512,6 @@ table.g tr.sum td.tu{font-weight:700;color:var(--fg)}
 <div class="acc">
 <details open><summary>What changed <span id="chgDate"></span></summary><div class="in changed" id="chg"></div></details>
 <details open><summary>The Market <span id="mktSum"></span></summary><div class="in"><div class="tiles" id="tiles"></div></div></details>
-<details open><summary>Next 14 days <span id="evSum"></span></summary><div class="in"><div class="evl" id="evs"></div></div></details>
 <details open><summary>How the vote works <span>10 rules</span></summary><div class="in"><dl class="dl" id="rules"></dl></div></details>
 </div>
 </section>
@@ -912,12 +906,6 @@ drawChg(u);
 const M=id=>D.market.find(r=>r.id===id);
 {const mc=M('mcap'),sk=M('stocks');$('#mktSum').textContent=[mc?'Crypto '+F.usdT(mc.value):'',sk?'Stocks '+F.pct(sk.value):''].filter(Boolean).join(' · ');}
 D.market.forEach(r=>{const t=el('div','tile');t.append(el('div','l',r.label));const v=el('div','v',r.fmt==='txt'?String(r.value):(F[r.fmt]||F.int)(Number(r.value)));if(r.fmt==='pct'||r.fmt==='usdM')v.classList.add(r.value<0?'down':'up');t.append(v);const s=el('div','s');s.append(r.asof+' · ',link(r.source,r.url));t.append(s);$('#tiles').append(t);});
-const today=new Date().toISOString().slice(0,10);const up=D.events.filter(e=>e.date>=today);$('#evSum').textContent=(up.find(e=>e.key&&!/Bell/.test(e.short))||{}).short||'';
-up.forEach(r=>{const e=el('div','ev'+(r.key?' key':''));const w=el('b',null,r.when_utc.split(',')[0]);w.append(el('small',null,r.when_et));const t=el('div','what',r.event);const E=D.econ||{};
-  /* once BLS has published, show the result on the event itself */
-  if(/jobs report/i.test(r.event)&&E.jobs&&E.jobs.release_date===r.date)t.append(el('small','res','Result: '+(E.jobs.payrolls_change>0?'+':'')+E.jobs.payrolls_change.toLocaleString()+' jobs, unemployment '+E.jobs.unemployment_rate+'% (BLS)'));
-  if(/\bCPI\b/.test(r.event)&&E.cpi&&E.cpi.release_date===r.date)t.append(el('small','res','Result: CPI '+(E.cpi.cpi_mm>0?'+':'')+E.cpi.cpi_mm+'% m/m, '+E.cpi.cpi_yy+'% y/y'+(E.cpi.core_mm!=null?'; core '+(E.cpi.core_mm>0?'+':'')+E.cpi.core_mm+'% m/m':'')+' (BLS)'));
-  const s=el('small');s.append(link(r.source,r.url));t.append(s);e.append(w,t);$('#evs').append(e);});
 D.rules.forEach(r=>$('#rules').append(el('dt',null,r.rule),el('dd',null,r.text)));
 D.glossary.forEach(g=>$('#gloss').append(el('dt',null,g.term),el('dd',null,g.def)));
 
@@ -959,19 +947,9 @@ addEventListener('hashchange',()=>{const h=location.hash.slice(1).toLowerCase();
    const sg=v=>(v>0?'+':v<0?'−':'')+Math.abs(v).toLocaleString(undefined,{maximumFractionDigits:1});
    const day=s=>s?new Date(s+'T12:00:00Z').toLocaleDateString(undefined,{month:'short',day:'numeric',timeZone:'UTC'}):'';
    const J=d.econ.jobs,C=d.econ.cpi,tiles=[];
-   if(J)tiles.push({id:'bls_jobs',label:'Jobs added, '+mo(J.period)+(J.preliminary?' (prelim.)':''),value:sg(J.payrolls_change),fmt:'txt',asof:(J.release_date?'Released '+day(J.release_date)+' · ':'')+'unemployment '+J.unemployment_rate+'%',source:'BLS',url:J.url});
+   const tdy=new Date().toISOString().slice(0,10),nj=((d.econ.schedule||{}).jobs||[]).find(x=>x>tdy||x===tdy);const nl=nj?' · next report '+new Date(nj+'T12:00:00Z').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'}).replace(',',''):'';
+   if(J)tiles.push({id:'bls_jobs',label:'Jobs added, '+mo(J.period)+(J.preliminary?' (prelim.)':''),value:sg(J.payrolls_change),fmt:'txt',asof:(J.release_date?'Released '+day(J.release_date)+' · ':'')+'unemployment '+J.unemployment_rate+'%'+nl,source:'BLS',url:J.url});
    d.market=(d.market||[]).filter(r=>!/^bls_/.test(r.id)).concat(tiles);
-   /* official release dates (BLS jobs and CPI, Fed decisions) added to "Next 14 days" unless already listed */
-   const S=d.econ.schedule||{},t0=new Date(),iso=x=>x.toISOString().slice(0,10),end=iso(new Date(t0.getTime()+14*864e5)),td=iso(new Date(t0.getTime()-864e5));
-   const lbl=s=>{const x=new Date(s+'T12:00:00Z');return x.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'}).replace(',','');};
-   const prevMonth=s=>{const x=new Date(s+'T12:00:00Z');x.setUTCDate(1);x.setUTCMonth(x.getUTCMonth()-1);return x.toLocaleDateString('en-US',{month:'long',timeZone:'UTC'});};
-   const have=(date,re)=>(d.events||[]).some(e=>e.date===date&&re.test(e.event));
-   const add=(k,re,ev)=>(S[k]||[]).filter(x=>x>=td&&x<=end).forEach(x=>{if(!have(x,re))d.events.push(Object.assign({id:'auto_'+k+'_'+x,date:x,when_utc:lbl(x),key:true},ev(x)));});
-   d.events=d.events||[];
-   add('jobs',/jobs report|payroll/i,x=>({when_et:'8:30am ET',event:prevMonth(x)+' jobs report',tokens:'Everything',short:'Jobs report '+lbl(x).split(' ')[0]+' 8:30am',source:'BLS schedule',url:'https://www.bls.gov/schedule/news_release/empsit.htm'}));
-   add('cpi',/\bCPI\b|inflation/i,x=>({when_et:'8:30am ET',event:prevMonth(x)+' CPI (inflation)',tokens:'ETH, SGOV, GLD, QQQ',short:'CPI '+lbl(x),source:'BLS schedule',url:'https://www.bls.gov/schedule/news_release/cpi.htm'}));
-   add('fomc',/\bFed\b|FOMC/i,x=>({when_et:'2:00pm ET',event:'Fed rate decision (FOMC)',tokens:'Everything',short:'Fed decision '+lbl(x),source:'Federal Reserve',url:'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm'}));
-   d.events.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
    return d;}))
  /* CoinMarketCap figures (free Basic plan, written by the GitHub reader every ~30 min): BTC, Fear & Greed, and the CoinMarketCap line on listed tokens */
  .then(d=>(window.__CMC__?Promise.resolve(window.__CMC__):fetch('cmc.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null)).then(X=>{
