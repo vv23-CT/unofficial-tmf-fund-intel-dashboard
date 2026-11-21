@@ -453,6 +453,27 @@ table.g tr.sum td.tu{font-weight:700;color:var(--fg)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .cchip.add{background:#1f3a27;color:#8fe0a6}:root:not([data-theme="light"]) .cchip.drop{background:#4a2520;color:#ffa595}}
 :root[data-theme="dark"] .cchip.add{background:#1f3a27;color:#8fe0a6}:root[data-theme="dark"] .cchip.drop{background:#4a2520;color:#ffa595}
 :root[data-term] .cchip{background:transparent!important;border:1px solid currentColor}:root[data-term] .cchip.add{color:var(--acc)!important}:root[data-term] .cchip.drop{color:#ff6b5e!important}
+
+.wkx{display:flex;flex-direction:column;gap:7px;margin:0;padding:0;list-style:none}
+.wkx li{display:grid;grid-template-columns:4.9rem minmax(0,1fr) 4.4rem;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-left:4px solid var(--line);border-radius:0 10px 10px 0;background:var(--card2);font-size:13px}
+.wkx li:last-child{border-bottom:1px solid var(--line)}
+.wkx li.chg{border-left-color:var(--fh);background:color-mix(in srgb,var(--fh) 9%,var(--card2))}
+.wkx .d{font-weight:700;font-size:12px;line-height:1.25}.wkx .d small{display:block;font-weight:400;color:var(--muted);font-size:11px}
+.wkx .k{display:flex;flex-wrap:wrap;gap:4px 7px;align-items:center;min-width:0}
+.wkx .tg{display:inline-flex;align-items:center;gap:5px}.wkx .tg i{font-style:normal;padding:2px 7px;border-radius:6px;font-weight:800;font-size:12px;letter-spacing:.02em}.wkx .tg b{font-size:12.5px}
+.wkx .none{color:var(--muted);font-weight:600;font-size:12.5px}
+.wkx .pl{font-size:11px;font-weight:800;padding:1px 6px;border-radius:5px}.wkx .pl.add{background:#dff0e2;color:#1f6a35}.wkx .pl.drop{background:#f6dcd6;color:#9b3326}
+.wkx .sv{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;font-size:12.5px;white-space:nowrap}
+.wkx .sv span{display:block;height:5px;border-radius:9px;background:var(--pale);margin-top:4px;overflow:hidden}.wkx .sv span i{display:block;height:100%;background:var(--fh);border-radius:9px}
+.wks{border:1px solid var(--line);border-radius:12px;background:var(--card2);padding:10px 10px 6px;margin:0 0 10px}
+.wks h4{margin:0 0 2px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between}
+.wks svg{display:block;width:100%;height:84px}.wks .note{margin:4px 0 4px;font-size:11.5px}
+.wksb{display:block;margin:8px auto 0;padding:8px 12px;border:1px solid var(--line);border-radius:9px;background:var(--card);font:600 12.5px var(--sans);cursor:pointer;color:var(--fg)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .wkx .pl.add{background:#1f3a27;color:#8fe0a6}:root:not([data-theme="light"]) .wkx .pl.drop{background:#4a2520;color:#ffa595}}
+:root[data-theme="dark"] .wkx .pl.add{background:#1f3a27;color:#8fe0a6}:root[data-theme="dark"] .wkx .pl.drop{background:#4a2520;color:#ffa595}
+:root[data-term] .wkx .tg i{background:transparent!important;color:var(--fg)!important;border:1px solid var(--fg)}
+:root[data-term] .wkx .pl{background:transparent!important;border:1px solid currentColor}:root[data-term] .wkx .pl.add{color:var(--acc)!important}:root[data-term] .wkx .pl.drop{color:#ff6b5e!important}
+:root[data-term] .wkx li.chg{border-left-color:var(--acc)}:root[data-term] .wkx .sv span i{background:var(--acc)}
 </style>
 <script>try{var t=localStorage.getItem('sfi-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}</script>
 </head><body><div class="page">
@@ -729,14 +750,36 @@ function drawCardTimes(){placeCT();const box=$('#ctBox'),btn=$('#stChairsBtn');b
  if(!H||!tot){ft.textContent='No card times recorded yet this week.';}
  else{ft.append(el('b',null,'Last 24 hours: '+last24+(last24===1?' card':' cards')+'.'));if(busiest){const [k,r]=busiest[0].split('|');const d=new Date(k+'T12:00:00Z');ft.append(' Busiest so far: '+new Intl.DateTimeFormat(undefined,{weekday:'long',timeZone:'UTC'}).format(d)+' '+['pre-market','market hours','after hours','overnight'][+r]+' ('+busiest[1]+').');}}
  const src=$('#ctSrc');src.replaceChildren('Pre-market 4–9:30 AM · Market 9:30 AM–4 PM · After hours 4–8 PM · Overnight 8 PM–4 AM, counted with the evening it starts. Same clock times on weekends and holidays, when markets are closed. Each card\'s on-chain time; changed cards count too, so it can add up to more than seats voted. ');src.append(link('Ballot contract',(D.chain||{}).url));}
+/* This week: colored rows, identical readings folded together (a new week starts when the seat count resets) */
+let WKMODE=window.__WKMODE__||'a',WK_ALL=false;
+const wkSig=s=>JSON.stringify(Object.keys(s.backs||{}).sort());
+function wkGroups(H){const gs=[];H.forEach((s,i)=>{const l=gs[gs.length-1],p=i?H[i-1]:null;if(l&&p&&wkSig(p)===wkSig(s)&&s.chairs>=p.chairs)l.push(s);else gs.push([s]);});return gs.reverse();}
+function wkChips(s,prev){const k=el('span','k'),bk=Object.entries(s.backs||{}).sort((a,b)=>b[1]-a[1]);
+ if(!bk.length)k.append(el('span','none','Nothing backed · all WETH'));
+ bk.forEach(([t,v])=>{const c=tcol(t),g=el('span','tg'),i=el('i',null,t);i.style.background=c.bg;i.style.color=c.ink;g.append(i,el('b',null,P(v)));k.append(g);});
+ if(prev){const pb=Object.keys(prev.backs||{}),nb=bk.map(x=>x[0]);nb.filter(x=>!pb.includes(x)).forEach(x=>k.append(el('span','pl add','+ '+x)));pb.filter(x=>!nb.includes(x)).forEach(x=>k.append(el('span','pl drop','− '+x)));}
+ return k;}
+function wkRow(g,older,max){const s=g[g.length-1],o=g[0],li=el('li',!older||wkSig(older[older.length-1])!==wkSig(s)?'chg':'');
+ const d=el('div','d'),day=x=>x.asof_utc?fmtDay.format(new Date(x.asof_utc)):x.asof.split(',')[0],tm=x=>x.asof_utc?fmtTime.format(new Date(x.asof_utc)):(x.asof.split(', ')[1]||'');
+ if(g.length>1){d.append(day(o)+' → '+day(s));d.append(el('small',null,g.length+' readings, same backing'));}else{d.append(day(s));d.append(el('small',null,tm(s)));}
+ const sv=el('div','sv',s.chairs+' seats'),bar=el('span'),fill=el('i');fill.style.width=Math.max(3,s.chairs/max*100)+'%';bar.append(fill);sv.append(bar);
+ li.append(d,wkChips(s,older?older[older.length-1]:null),sv);return li;}
 function drawWeek(){drawBell();drawFundHist();const f=FI[SEL],H=f.history||[],ol=$('#wkList');ol.replaceChildren();
- H.slice().reverse().forEach((s,ri)=>{const i=H.length-1-ri,prev=i?H[i-1]:null;const li=el('li');
-  const w=el('div','w',s.asof_utc?fmtDay.format(new Date(s.asof_utc)):s.asof.split(',')[0]);w.append(el('small',null,s.asof_utc?fmtTime.format(new Date(s.asof_utc)):(s.asof.split(', ')[1]||'')));if(s.chain)w.append(el('small','oc','on-chain'));
-  const bk=Object.entries(s.backs).sort((a,b)=>b[1]-a[1]);const b=el('div','b',bk.length?bk.map(([k,v])=>k+' '+P(v)).join(', '):'Nothing backed');
-  if(prev){const pb=Object.keys(prev.backs),nb=bk.map(x=>x[0]);const add=nb.filter(k=>!pb.includes(k)),rem=pb.filter(k=>!nb.includes(k));if(add.length)b.append(' ',el('span','chg','+ '+add.join(', ')));if(rem.length)b.append(' ',el('span','chg','− '+rem.join(', ')));}
-  const c=el('div','c',s.chairs+' seats');if(prev&&s.chairs!==prev.chairs)c.append(el('small',null,(s.chairs>prev.chairs?'+':'')+(s.chairs-prev.chairs)));
-  li.append(w,b,c);ol.append(li);});
- $('#wkNote').textContent=(H.length<2?'One reading so far this week; each new one adds a row. ':'Newest first. ')+'Rows marked on-chain are rebuilt every 30 minutes from the cards on Robinhood Chain; the others are from the '+f.name+' ballot page.';}
+ const hc=(HOUSE[SEL]||['#9C5248'])[0];ol.style.setProperty('--fh',hc);ol.className='wkx';
+ const old=$('#wks');if(old)old.remove();const ob=$('#wksb');if(ob)ob.remove();
+ const max=Math.max(1,...H.map(s=>s.chairs)),gs=wkGroups(H);
+ let shown=gs;
+ if(WKMODE==='b'&&H.length>1){
+  const W=340,Hh=72,pad=6,n=H.length,x=i=>pad+i*(W-2*pad)/(n-1),y=v=>Hh-pad-(v/max)*(Hh-2*pad),pts=H.map((s,i)=>[x(i),y(s.chairs)]),path=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  let svg='<svg viewBox="0 0 '+W+' '+Hh+'" preserveAspectRatio="none" role="img" aria-label="Seats voted this week"><path d="'+path+' L'+pts[n-1][0]+' '+Hh+' L'+pts[0][0]+' '+Hh+'Z" fill="'+hc+'" opacity=".15"/><path d="'+path+'" fill="none" stroke="'+hc+'" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>';
+  H.forEach((s,i)=>{if(i&&wkSig(H[i-1])!==wkSig(s))svg+='<circle cx="'+pts[i][0]+'" cy="'+pts[i][1]+'" r="4" fill="#fff" stroke="'+hc+'" stroke-width="2"/>';});svg+='</svg>';
+  const w=el('div','wks');w.id='wks';const h4=el('h4');h4.append(el('span',null,'Seats voted over time'),el('span',null,H[0].chairs+' → '+H[n-1].chairs));w.append(h4);w.insertAdjacentHTML('beforeend',svg);w.append(el('p','note','Dots mark where the backing changed.'));ol.before(w);
+  const chg=gs.filter((g,i)=>!gs[i+1]||wkSig(gs[i+1][gs[i+1].length-1])!==wkSig(g[g.length-1]));
+  if(!WK_ALL&&chg.length<gs.length){shown=chg;const bt=el('button','wksb','Show every reading ('+gs.length+')');bt.id='wksb';bt.onclick=()=>{WK_ALL=true;drawWeek();};ol.after(bt);}
+  else if(WK_ALL){const bt=el('button','wksb','Show only changes');bt.id='wksb';bt.onclick=()=>{WK_ALL=false;drawWeek();};ol.after(bt);}}
+ shown.forEach(g=>{const i=gs.indexOf(g);ol.append(wkRow(g,gs[i+1]||null,max));});
+ $('#wkNote').textContent=WKMODE==='b'&&!WK_ALL?'Only readings where the backing changed. On-chain rows are rebuilt every 30 minutes from the cards on Robinhood Chain.':'Newest first. Matching readings are folded together; highlighted rows are where the backing changed. On-chain rows are rebuilt every 30 minutes from the cards on Robinhood Chain.';}
+window.__setWK=m=>{WKMODE=m;WK_ALL=false;if(m==='off'){const ol=$('#wkList');ol.className='wk';}drawWeek();};
 
 const ORDER={backed:0,vetoed:1,no_cards:2};
 /* room support: share of the room's seat weight that put anything on a token (over 50% = backed), from this week's on-chain cards */
