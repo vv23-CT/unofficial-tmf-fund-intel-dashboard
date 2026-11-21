@@ -428,6 +428,27 @@ table.g tr.sum td.tu{font-weight:700;color:var(--fg)}
 @media (max-width:899px){.app[data-fcc="1"] .fcard,.app[data-fcc="1"] .swipehint{display:none}}
 @media (min-width:900px){.hdtog .chev{display:none}.hdtog{cursor:default}.fcmini{display:none!important}}
 :root[data-term] .hdtog .chev{border-color:var(--acc);color:var(--acc);background:#000}
+
+/* More tab: soft section cards, icon chips, compact "What changed" rows */
+.chr{margin:0 0 5px;padding:6px 10px 7px;border:0;border-left:4px solid var(--fh);border-radius:0 9px 9px 0}
+.chv{margin-top:5px}.chbar{height:5px}.chf{min-width:54px;font-size:11px;padding:2px 7px}
+.changed .chh{margin-bottom:8px}
+.acc{border:0;background:transparent;overflow:visible;display:flex;flex-direction:column;gap:8px}
+.acc details{border:1px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden}
+.acc details:last-child{border:1px solid var(--line)}
+.acc summary{display:grid;grid-template-columns:30px 1fr 18px;column-gap:11px;row-gap:1px;padding:10px 12px;align-items:center}
+.acc summary::before{content:"";grid-row:1/span 2;grid-column:1;display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9px;font:800 14px/1 var(--sans);color:#fff;background:var(--house)}
+.acc summary>span{grid-column:2;grid-row:2;text-align:left;font-size:12.5px}
+.acc summary::after{content:"▾";grid-column:3;grid-row:1/span 2;color:var(--muted);transition:transform .2s;text-align:center}
+.acc details[open]>summary::after{transform:rotate(180deg)}
+.acc .in{padding:2px 12px 12px}
+.acc details:nth-child(1)>summary::before{content:"Δ";background:#9C5248}
+.acc details:nth-child(2)>summary::before{content:"$";background:#49698C}
+.acc details:nth-child(3)>summary::before{content:"◆";background:#4f8a58}
+.acc details:nth-child(4)>summary::before{content:"▦";background:#c4902a}
+.acc details:nth-child(5)>summary::before{content:"?";background:#6b5b8c}
+:root[data-term] .acc summary::before{background:transparent!important;border:1px solid var(--acc);color:var(--acc)}
+:root[data-term] .acc details{border-color:var(--line)}
 </style>
 <script>try{var t=localStorage.getItem('sfi-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}</script>
 </head><body><div class="page">
@@ -886,9 +907,9 @@ function drawChg(u){const box=$('#chg');box.textContent='';const dt=box.closest(
   else tk.append(el('span','chn','Nothing backed'));
   top.append(tk);row.append(top);
   if(r.voted!=null){const v=el('div','chv');const bar=el('span','chbar');const fill=el('i');fill.style.width=Math.min(100,r.voted)+'%';bar.append(fill);v.append(bar,el('span','chvt',r.voted+'% voted'));row.append(v);}
-  if(r.change)row.append(el('small','chc',r.change));
+  if(r.change&&!/^same as/i.test(r.change))row.append(el('small','chc',r.change));
   box.append(row);});
- if(u.note)box.append(el('p','chn2',u.note));}
+}
 drawChg(u);
 const M=id=>D.market.find(r=>r.id===id);
 {const mc=M('mcap'),sk=M('stocks');$('#mktSum').textContent=[mc?'Crypto '+F.usdT(mc.value):'',sk?'Stocks '+F.pct(sk.value):''].filter(Boolean).join(' · ');}
