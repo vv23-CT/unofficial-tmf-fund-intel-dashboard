@@ -512,7 +512,7 @@ table.g tr.sum td.tu{font-weight:700;color:var(--fg)}
 <div class="acc">
 <details open><summary>What changed <span id="chgDate"></span></summary><div class="in changed" id="chg"></div></details>
 <details open><summary>The Market <span id="mktSum"></span></summary><div class="in"><div class="tiles" id="tiles"></div></div></details>
-<details open><summary>How the vote works <span>10 rules</span></summary><div class="in"><dl class="dl" id="rules"></dl></div></details>
+<details open><summary>How the vote works <span id="rulesSum"></span></summary><div class="in"><dl class="dl" id="rules"></dl></div></details>
 </div>
 </section>
 </main>
@@ -906,6 +906,7 @@ drawChg(u);
 const M=id=>D.market.find(r=>r.id===id);
 {const mc=M('mcap'),sk=M('stocks');$('#mktSum').textContent=[mc?'Crypto '+F.usdT(mc.value):'',sk?'Stocks '+F.pct(sk.value):''].filter(Boolean).join(' · ');}
 D.market.forEach(r=>{const t=el('div','tile');t.append(el('div','l',r.label));const v=el('div','v',r.fmt==='txt'?String(r.value):(F[r.fmt]||F.int)(Number(r.value)));if(r.fmt==='pct'||r.fmt==='usdM')v.classList.add(r.value<0?'down':'up');t.append(v);const s=el('div','s');s.append(r.asof+' · ',link(r.source,r.url));t.append(s);$('#tiles').append(t);});
+$('#rulesSum').textContent=D.rules.length+' short rules';
 D.rules.forEach(r=>$('#rules').append(el('dt',null,r.rule),el('dd',null,r.text)));
 D.glossary.forEach(g=>$('#gloss').append(el('dt',null,g.term),el('dd',null,g.def)));
 

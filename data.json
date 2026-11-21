@@ -836,44 +836,28 @@
  ],
  "rules": [
   {
-   "rule": "What gets voted",
-   "text": "Each week, Seats vote how the fund's book is split across a fixed list of tokens. Gains are measured in ETH; WETH is the cash sleeve."
-  },
-  {
-   "rule": "Max per token",
-   "text": "No more than 25% of the book in any one token. WETH has no cap."
-  },
-  {
-   "rule": "$TMF is held",
-   "text": "The fund never sells its own $TMF. Only the rest of the book is split."
-  },
-  {
-   "rule": "50% backing",
-   "text": "A token gets nothing that week unless cards holding at least half the weight cast give it something. Otherwise its share stays in WETH."
-  },
-  {
-   "rule": "Turnout floor",
-   "text": "The dials only change if at least 25 different Seats vote. Otherwise last week's settings stay."
-  },
-  {
-   "rule": "Dials",
-   "text": "Profit take: 0–50% of the week's confirmed gain paid out in kind. Expense ratio: 0–20% of the fund's fee income burned."
-  },
-  {
-   "rule": "How fast it moves",
-   "text": "Each Friday the fund moves at most a fifth of the book toward the voted split, and only as much as each pool can take while moving its price about half a percent."
-  },
-  {
-   "rule": "Gains must last",
-   "text": "Dividends are paid on the lower of two readings at least six days apart, using 30-minute average prices."
-  },
-  {
    "rule": "Who votes",
-   "text": "Only Seats enrolled before the week began. One card per Seat per week; once counted it can't be changed."
+   "text": "Seats enrolled before the week began. One card per Seat; once counted, it's final."
   },
   {
    "rule": "The bell",
-   "text": "Voting closes Friday 20:00 UTC: 3pm New York in winter, 4pm in summer. The chain's clock ignores daylight saving."
+   "text": "Voting closes Friday 8:00 PM UTC (3 or 4 PM in New York)."
+  },
+  {
+   "rule": "What's voted",
+   "text": "How the fund's book is split across the token list, plus profit take (0–50% of gains) and fee burn (0–20%)."
+  },
+  {
+   "rule": "Limits",
+   "text": "No more than 25% in one token (WETH has no cap). A token needs at least half the vote weight behind it, or its share stays in WETH."
+  },
+  {
+   "rule": "Turnout",
+   "text": "At least 25 Seats must vote, or last week's settings stay."
+  },
+  {
+   "rule": "Pace",
+   "text": "Each Friday the fund moves at most a fifth of the book toward the vote. It never sells its own $TMF."
   }
  ],
  "glossary": [
