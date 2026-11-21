@@ -510,9 +510,9 @@ table.g tr.sum td.tu{font-weight:700;color:var(--fg)}
 </section>
 <section class="view" data-view="more" hidden>
 <div class="acc">
-<details open><summary>What changed <span id="chgDate"></span></summary><div class="in changed" id="chg"></div></details>
-<details open><summary>The Market <span id="mktSum"></span></summary><div class="in"><div class="tiles" id="tiles"></div></div></details>
-<details open><summary>How the vote works <span id="rulesSum"></span></summary><div class="in"><dl class="dl" id="rules"></dl></div></details>
+<details><summary>What changed <span id="chgDate"></span></summary><div class="in changed" id="chg"></div></details>
+<details><summary>The Market <span id="mktSum"></span></summary><div class="in"><div class="tiles" id="tiles"></div></div></details>
+<details><summary>How the vote works <span id="rulesSum"></span></summary><div class="in"><dl class="dl" id="rules"></dl></div></details>
 </div>
 </section>
 </main>
@@ -888,7 +888,7 @@ function drawTicker(){const box=$('#tpk');if(!box)return;
 drawTicker();
 /* more */
 const u=D.updates[0];$('#chgDate').textContent=u.date;
-function drawChg(u){const box=$('#chg');box.textContent='';const dt=box.closest('details');if(dt)dt.open=true;
+function drawChg(u){const box=$('#chg');box.textContent='';
  if(!u.rows){String(u.text||'').split(/(?<=\.)\s+(?=[A-Z])/).forEach(t=>box.append(el('p','chp',t)));return;}
  const hd=el('div','chh');hd.append(el('b',null,u.title||'Update'));if(u.when)hd.append(el('span','chw',u.when));box.append(hd);
  u.rows.forEach(r=>{const id=String(r.fund||'').toLowerCase(),hc=HOUSE[id]||['#453629','#fff'];
