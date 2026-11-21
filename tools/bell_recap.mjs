@@ -37,16 +37,17 @@ if (a && !(d.updates || []).some(u => (u.text || '').startsWith(`Week ${a.week} 
   const rows = FUNDS.map(f => {
     const x = a.funds[f]; if (!x) return null;
     const b = Object.entries(x.room_tokens || {}).sort((p, q) => q[1] - p[1]);
-    const y = prevA?.funds?.[f]; let change = '';
+    const y = prevA?.funds?.[f]; let change = '', added = [], dropped = [];
     if (y) { const was = Object.keys(y.room_tokens || {}), now = b.map(([t]) => t);
       const add = now.filter(t => !was.includes(t)), drop = was.filter(t => !now.includes(t));
+      added = add; dropped = drop;
       const parts = [add.length ? 'now backs ' + add.join(', ') : '', drop.length ? 'dropped ' + drop.join(', ') : ''].filter(Boolean);
       change = parts.length ? parts.join('; ') : 'same as Week ' + prevA.week; }
-    return { fund: f.toUpperCase(), backed: b.map(([t, v]) => t + ' ' + pct(v)), voted: x.enrolled_last_reading ? Math.round(x.chairs / x.enrolled_last_reading * 100) : null, change };
+    return { fund: f.toUpperCase(), backed: b.map(([t, v]) => t + ' ' + pct(v)), voted: x.enrolled_last_reading ? Math.round(x.chairs / x.enrolled_last_reading * 100) : null, change, added, dropped };
   }).filter(Boolean);
   const title = `Week ${a.week} bell`, when = et.format(new Date(a.bell_utc)) + ' ET';
   recap = `Week ${a.week} bell (${et.format(new Date(a.bell_utc))} ET): ` + lines.join('. ') + '. Rebuilt from on-chain cards (Robinhood Chain, Ballot contract).';
-  d.updates = [{ date: day.format(new Date(a.bell_utc)), title, when, rows, note: 'Rebuilt from on-chain cards.', text: recap }].concat(d.updates || []);
+  d.updates = [{ date: day.format(new Date(a.bell_utc)), title, when, prev_week: prevA ? prevA.week : null, rows, note: 'Rebuilt from on-chain cards.', text: recap }].concat(d.updates || []);
   changed = true;
 }
 if (changed) fs.writeFileSync('data.json', JSON.stringify(d, null, 1));
