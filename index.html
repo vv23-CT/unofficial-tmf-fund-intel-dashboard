@@ -443,6 +443,16 @@ table.g tr.sum td.tu{font-weight:700;color:var(--fg)}
 .acc details:nth-child(3)>summary::before{content:"?";background:#6b5b8c}
 :root[data-term] .acc summary::before{background:transparent!important;border:1px solid var(--acc);color:var(--acc)}
 :root[data-term] .acc details{border-color:var(--line)}
+
+.cwhy{margin:0 0 9px;font-size:12.5px;color:var(--muted);line-height:1.4}
+.cchips{display:flex;flex-wrap:wrap;gap:5px;align-items:center;min-width:0}
+.cchip{padding:2px 8px;border-radius:6px;font-size:12.5px;font-weight:800;letter-spacing:.02em}
+.cchip.add{background:#dff0e2;color:#1f6a35}.cchip.drop{background:#f6dcd6;color:#9b3326}
+.cnone{color:var(--muted);font-size:13px;font-weight:600}
+.cnow{margin-top:5px;font-size:11.5px;color:var(--muted);line-height:1.4}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .cchip.add{background:#1f3a27;color:#8fe0a6}:root:not([data-theme="light"]) .cchip.drop{background:#4a2520;color:#ffa595}}
+:root[data-theme="dark"] .cchip.add{background:#1f3a27;color:#8fe0a6}:root[data-theme="dark"] .cchip.drop{background:#4a2520;color:#ffa595}
+:root[data-term] .cchip{background:transparent!important;border:1px solid currentColor}:root[data-term] .cchip.add{color:var(--acc)!important}:root[data-term] .cchip.drop{color:#ff6b5e!important}
 </style>
 <script>try{var t=localStorage.getItem('sfi-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}</script>
 </head><body><div class="page">
@@ -510,7 +520,7 @@ table.g tr.sum td.tu{font-weight:700;color:var(--fg)}
 </section>
 <section class="view" data-view="more" hidden>
 <div class="acc">
-<details><summary>What changed <span id="chgDate"></span></summary><div class="in changed" id="chg"></div></details>
+<details><summary><b id="chgTitle" style="font-weight:inherit">What changed</b><span id="chgDate"></span></summary><div class="in changed" id="chg"></div></details>
 <details><summary>The Market <span id="mktSum"></span></summary><div class="in"><div class="tiles" id="tiles"></div></div></details>
 <details><summary>How the vote works <span id="rulesSum"></span></summary><div class="in"><dl class="dl" id="rules"></dl></div></details>
 </div>
@@ -887,19 +897,21 @@ function drawTicker(){const box=$('#tpk');if(!box)return;
  box.hidden=false;}
 drawTicker();
 /* more */
-const u=D.updates[0];$('#chgDate').textContent=u.date;
+const u=D.updates[0];
 function drawChg(u){const box=$('#chg');box.textContent='';
- if(!u.rows){String(u.text||'').split(/(?<=\.)\s+(?=[A-Z])/).forEach(t=>box.append(el('p','chp',t)));return;}
- const hd=el('div','chh');hd.append(el('b',null,u.title||'Update'));if(u.when)hd.append(el('span','chw',u.when));box.append(hd);
+ if(!u.rows){$('#chgDate').textContent=u.date||'';String(u.text||'').split(/(?<=\.)\s+(?=[A-Z])/).forEach(t=>box.append(el('p','chp',t)));return;}
+ const cmp=u.prev_week!=null,n=u.rows.filter(r=>(r.added||[]).length||(r.dropped||[]).length).length;
+ $('#chgTitle').textContent=cmp?'What changed since Week '+u.prev_week:(u.title||'What changed');
+ $('#chgDate').textContent=cmp?(n?n+' of '+u.rows.length+' funds changed':'Nothing changed'):(u.date||'');
+ box.append(el('p','cwhy',cmp?'Compared with last week\'s bell ('+(u.when||u.date)+'). Each fund shows what it added or dropped.':'Where each fund landed at the bell ('+(u.when||u.date)+').'));
  u.rows.forEach(r=>{const id=String(r.fund||'').toLowerCase(),hc=HOUSE[id]||['#453629','#fff'];
   const row=el('div','chr');row.style.setProperty('--fh',hc[0]);row.style.setProperty('--fhi',hc[1]);
-  const top=el('div','cht');top.append(el('b','chf',r.fund));
-  const tk=el('span','chk');
-  if(r.backed.length)r.backed.forEach(x=>{const [t,...p]=x.split(' ');const c=tcol(t),g=el('span','chg');const tg=el('span','cht2',t);tg.style.background=c.bg;tg.style.color=c.ink;g.append(tg,el('span','chp2',p.join(' ')));tk.append(g);});
-  else tk.append(el('span','chn','Nothing backed'));
-  top.append(tk);row.append(top);
-  if(r.voted!=null){const v=el('div','chv');const bar=el('span','chbar');const fill=el('i');fill.style.width=Math.min(100,r.voted)+'%';bar.append(fill);v.append(bar,el('span','chvt',r.voted+'% voted'));row.append(v);}
-  if(r.change&&!/^same as/i.test(r.change))row.append(el('small','chc',r.change));
+  const top=el('div','cht');top.append(el('b','chf',r.fund));const k=el('span','cchips');
+  const ad=r.added||[],dr=r.dropped||[];
+  if(cmp&&(ad.length||dr.length)){ad.forEach(t=>k.append(el('span','cchip add','+ '+t)));dr.forEach(t=>k.append(el('span','cchip drop','− '+t)));}
+  else if(cmp)k.append(el('span','cnone','No change'));
+  top.append(k);row.append(top);
+  row.append(el('div','cnow',(cmp?'Backing now: ':'Backing: ')+(r.backed.length?r.backed.join(' · '):'nothing')+(r.voted!=null?' · '+r.voted+'% of Seats voted':'')));
   box.append(row);});
 }
 drawChg(u);
