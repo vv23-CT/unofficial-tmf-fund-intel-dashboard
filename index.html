@@ -474,6 +474,8 @@ table.g tr.sum td.tu{font-weight:700;color:var(--fg)}
 :root[data-term] .wkx .tg i{background:transparent!important;color:var(--fg)!important;border:1px solid var(--fg)}
 :root[data-term] .wkx .pl{background:transparent!important;border:1px solid currentColor}:root[data-term] .wkx .pl.add{color:var(--acc)!important}:root[data-term] .wkx .pl.drop{color:#ff6b5e!important}
 :root[data-term] .wkx li.chg{border-left-color:var(--acc)}:root[data-term] .wkx .sv span i{background:var(--acc)}
+.wkhead{margin:0 0 8px;font-weight:800;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.wkx .sv .dl{display:block;font-size:11px;font-weight:800;color:var(--muted)}.wkx .wkempty{display:block;border-left-color:var(--line);color:var(--muted)}
 </style>
 <script>try{var t=localStorage.getItem('sfi-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}</script>
 </head><body><div class="page">
@@ -524,6 +526,7 @@ table.g tr.sum td.tu{font-weight:700;color:var(--fg)}
 </div>
 <section class="view" data-view="week">
 <details class="lastbell fh" id="lastBell" hidden><summary id="lbSum"></summary><div class="lb-in"><table class="br" id="fhT"></table><button class="toggle" type="button" id="fhMore" hidden></button><p class="brnote" id="fhN"></p></div></details>
+<p class="wkhead" id="wkHead"></p>
 <ol class="wk" id="wkList"></ol>
 <p class="note" id="wkNote"></p>
 </section>
@@ -750,36 +753,27 @@ function drawCardTimes(){placeCT();const box=$('#ctBox'),btn=$('#stChairsBtn');b
  if(!H||!tot){ft.textContent='No card times recorded yet this week.';}
  else{ft.append(el('b',null,'Last 24 hours: '+last24+(last24===1?' card':' cards')+'.'));if(busiest){const [k,r]=busiest[0].split('|');const d=new Date(k+'T12:00:00Z');ft.append(' Busiest so far: '+new Intl.DateTimeFormat(undefined,{weekday:'long',timeZone:'UTC'}).format(d)+' '+['pre-market','market hours','after hours','overnight'][+r]+' ('+busiest[1]+').');}}
  const src=$('#ctSrc');src.replaceChildren('Pre-market 4–9:30 AM · Market 9:30 AM–4 PM · After hours 4–8 PM · Overnight 8 PM–4 AM, counted with the evening it starts. Same clock times on weekends and holidays, when markets are closed. Each card\'s on-chain time; changed cards count too, so it can add up to more than seats voted. ');src.append(link('Ballot contract',(D.chain||{}).url));}
-/* This week: colored rows, identical readings folded together (a new week starts when the seat count resets) */
-let WKMODE=window.__WKMODE__||'a',WK_ALL=false;
+/* This week: one row per day (the day's last reading, UTC); starts over after each Friday bell */
 const wkSig=s=>JSON.stringify(Object.keys(s.backs||{}).sort());
-function wkGroups(H){const gs=[];H.forEach((s,i)=>{const l=gs[gs.length-1],p=i?H[i-1]:null;if(l&&p&&wkSig(p)===wkSig(s)&&s.chairs>=p.chairs)l.push(s);else gs.push([s]);});return gs.reverse();}
+const wkDay=new Intl.DateTimeFormat(undefined,{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'}),wkTime=new Intl.DateTimeFormat(undefined,{hour:'numeric',minute:'2-digit',timeZone:'UTC'});
 function wkChips(s,prev){const k=el('span','k'),bk=Object.entries(s.backs||{}).sort((a,b)=>b[1]-a[1]);
  if(!bk.length)k.append(el('span','none','Nothing backed · all WETH'));
  bk.forEach(([t,v])=>{const c=tcol(t),g=el('span','tg'),i=el('i',null,t);i.style.background=c.bg;i.style.color=c.ink;g.append(i,el('b',null,P(v)));k.append(g);});
  if(prev){const pb=Object.keys(prev.backs||{}),nb=bk.map(x=>x[0]);nb.filter(x=>!pb.includes(x)).forEach(x=>k.append(el('span','pl add','+ '+x)));pb.filter(x=>!nb.includes(x)).forEach(x=>k.append(el('span','pl drop','− '+x)));}
  return k;}
-function wkRow(g,older,max){const s=g[g.length-1],o=g[0],li=el('li',!older||wkSig(older[older.length-1])!==wkSig(s)?'chg':'');
- const d=el('div','d'),day=x=>x.asof_utc?fmtDay.format(new Date(x.asof_utc)):x.asof.split(',')[0],tm=x=>x.asof_utc?fmtTime.format(new Date(x.asof_utc)):(x.asof.split(', ')[1]||'');
- if(g.length>1){d.append(day(o)+' → '+day(s));d.append(el('small',null,g.length+' readings, same backing'));}else{d.append(day(s));d.append(el('small',null,tm(s)));}
- const sv=el('div','sv',s.chairs+' seats'),bar=el('span'),fill=el('i');fill.style.width=Math.max(3,s.chairs/max*100)+'%';bar.append(fill);sv.append(bar);
- li.append(d,wkChips(s,older?older[older.length-1]:null),sv);return li;}
-function drawWeek(){drawBell();drawFundHist();const f=FI[SEL],H=f.history||[],ol=$('#wkList');ol.replaceChildren();
+function drawWeek(){drawBell();drawFundHist();const f=FI[SEL],ol=$('#wkList');ol.replaceChildren();
  const hc=(HOUSE[SEL]||['#9C5248'])[0];ol.style.setProperty('--fh',hc);ol.className='wkx';
- const old=$('#wks');if(old)old.remove();const ob=$('#wksb');if(ob)ob.remove();
- const max=Math.max(1,...H.map(s=>s.chairs)),gs=wkGroups(H);
- let shown=gs;
- if(WKMODE==='b'&&H.length>1){
-  const W=340,Hh=72,pad=6,n=H.length,x=i=>pad+i*(W-2*pad)/(n-1),y=v=>Hh-pad-(v/max)*(Hh-2*pad),pts=H.map((s,i)=>[x(i),y(s.chairs)]),path=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
-  let svg='<svg viewBox="0 0 '+W+' '+Hh+'" preserveAspectRatio="none" role="img" aria-label="Seats voted this week"><path d="'+path+' L'+pts[n-1][0]+' '+Hh+' L'+pts[0][0]+' '+Hh+'Z" fill="'+hc+'" opacity=".15"/><path d="'+path+'" fill="none" stroke="'+hc+'" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>';
-  H.forEach((s,i)=>{if(i&&wkSig(H[i-1])!==wkSig(s))svg+='<circle cx="'+pts[i][0]+'" cy="'+pts[i][1]+'" r="4" fill="#fff" stroke="'+hc+'" stroke-width="2"/>';});svg+='</svg>';
-  const w=el('div','wks');w.id='wks';const h4=el('h4');h4.append(el('span',null,'Seats voted over time'),el('span',null,H[0].chairs+' → '+H[n-1].chairs));w.append(h4);w.insertAdjacentHTML('beforeend',svg);w.append(el('p','note','Dots mark where the backing changed.'));ol.before(w);
-  const chg=gs.filter((g,i)=>!gs[i+1]||wkSig(gs[i+1][gs[i+1].length-1])!==wkSig(g[g.length-1]));
-  if(!WK_ALL&&chg.length<gs.length){shown=chg;const bt=el('button','wksb','Show every reading ('+gs.length+')');bt.id='wksb';bt.onclick=()=>{WK_ALL=true;drawWeek();};ol.after(bt);}
-  else if(WK_ALL){const bt=el('button','wksb','Show only changes');bt.id='wksb';bt.onclick=()=>{WK_ALL=false;drawWeek();};ol.after(bt);}}
- shown.forEach(g=>{const i=gs.indexOf(g);ol.append(wkRow(g,gs[i+1]||null,max));});
- $('#wkNote').textContent=WKMODE==='b'&&!WK_ALL?'Only readings where the backing changed. On-chain rows are rebuilt every 30 minutes from the cards on Robinhood Chain.':'Newest first. Matching readings are folded together; highlighted rows are where the backing changed. On-chain rows are rebuilt every 30 minutes from the cards on Robinhood Chain.';}
-window.__setWK=m=>{WKMODE=m;WK_ALL=false;if(m==='off'){const ol=$('#wkList');ol.className='wk';}drawWeek();};
+ const A=ARCH(),since=A.length&&A[0].bell_utc?A[0].bell_utc:'',H=(f.history||[]).filter(s=>s.asof_utc&&s.asof_utc>since);
+ const days=[];H.forEach(s=>{const k=s.asof_utc.slice(0,10),l=days[days.length-1];if(l&&l.k===k)l.s=s;else days.push({k,s});});
+ const max=Math.max(1,...days.map(d=>d.s.chairs)),hd=$('#wkHead');
+ if(hd)hd.textContent='Week '+D.week+' so far'+(D.bell_utc?' · closes '+wkDay.format(new Date(D.bell_utc))+', '+wkTime.format(new Date(D.bell_utc))+' UTC':'');
+ if(!days.length){ol.append(el('li','wkempty','No readings yet this week.'));}
+ days.slice().reverse().forEach((d,i,R)=>{const s=d.s,prev=days[days.length-1-i-1],li=el('li',!prev||wkSig(prev.s)!==wkSig(s)?'chg':'');
+  const dd=el('div','d');dd.append(wkDay.format(new Date(s.asof_utc)),el('small',null,(i===0?'Latest · ':'')+wkTime.format(new Date(s.asof_utc))+' UTC'));
+  const sv=el('div','sv',s.chairs+' seats'),bar=el('span'),fill=el('i');fill.style.width=Math.max(3,s.chairs/max*100)+'%';bar.append(fill);sv.append(bar);
+  if(prev&&s.chairs!==prev.s.chairs){const dl=s.chairs-prev.s.chairs;sv.insertBefore(el('small','dl',(dl>0?'+':'−')+Math.abs(dl)),bar);}
+  li.append(dd,wkChips(s,prev?prev.s:null),sv);ol.append(li);});
+ $('#wkNote').textContent='One row per day: the last on-chain reading of that day (UTC). The list starts over after each Friday bell; earlier weeks are in Last bell above.';}
 
 const ORDER={backed:0,vetoed:1,no_cards:2};
 /* room support: share of the room's seat weight that put anything on a token (over 50% = backed), from this week's on-chain cards */
